@@ -5,8 +5,8 @@ from configobj import ConfigObj
 from sqlalchemy import create_engine, and_
 from sqlalchemy.orm import sessionmaker
 from flask_cors import CORS
-import json
 import re
+import json as j
 
 app = Flask(__name__)
 CORS(app)
@@ -74,11 +74,11 @@ def html():
 
     percent = int((nodes_ready / total_nodes) * 100)
     results.append('<table>')
-    results.append('<tr><th>Percent Ready</th><td>' + str(percent) + '</td></tr>')
-    results.append('<tr><th>Total Nodes</th><td>' + str(total_nodes) + '</td></tr>')
-    results.append('<tr><th>Nodes Ready</th><td>' + str(nodes_ready) + '</td></tr>')
-    results.append('<tr><th>Parity Nodes Needing Upgrade</th><td>' + str(parity_upgrade_needed) + '</td></tr>')
-    results.append('<tr><th>Geth Nodes Needing Upgrade</th><td>' + str(geth_or_other) + '</td></tr>')
+    results.append('<tr><th align="right">Percent Ready</th><td>' + str(percent) + '</td></tr>')
+    results.append('<tr><th align="right">Total Nodes</th><td>' + str(total_nodes) + '</td></tr>')
+    results.append('<tr><th align="right">Nodes Ready</th><td>' + str(nodes_ready) + '</td></tr>')
+    results.append('<tr><th align="right">Parity Nodes Needing Upgrade</th><td>' + str(parity_upgrade_needed) + '</td></tr>')
+    results.append('<tr><th align="right">Geth Nodes Needing Upgrade</th><td>' + str(geth_or_other) + '</td></tr>')
     results.append('</table>')
 
     results.extend(nodes_table)
@@ -88,6 +88,7 @@ def html():
     return ''.join(results)
 
 
+@app.route('/index', methods=['GET', 'POST'])
 @app.route('/', methods=['GET', 'POST'])
 def peerstats():
     if request.method == 'POST':
@@ -95,7 +96,7 @@ def peerstats():
         added = 0
         updated = 0
         if file:
-            data = json.loads(file.read())
+            data = j.loads(file.read())
             peers = data['result']['peers']
             for p in peers:
                 if p['id'] is None:
@@ -109,19 +110,19 @@ def peerstats():
                     peer.name = p['name']
                     peer.enode = p['id']
                     peer.address = p['network']['remoteAddress']
-                    peer.peer_data = json.dumps(p)
+                    peer.peer_data = j.dumps(p)
                     session.add(peer)
                     added = added + 1
                 else:
                     peer.name = p['name']
                     peer.enode = p['id']
                     peer.address = p['network']['remoteAddress']
-                    peer.peer_data = json.dumps(p)
+                    peer.peer_data = j.dumps(p)
                     updated = updated + 1
 
                 session.commit()
 
-            return redirect(url_for('peerstats', added=added, updated=updated))
+            return redirect('/?added=' + str(added) + '&updated=' + str(updated))
 
     return '''
     <!doctype html>
@@ -148,5 +149,5 @@ def peerstats():
 def send_js(path):
     return send_from_directory('js', path, mimetype='application/javascript')
 
-
-app.run(debug=True)
+if __name__ == '__main__':
+    app.run(debug=True)
